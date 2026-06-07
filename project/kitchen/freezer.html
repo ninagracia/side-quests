@@ -66,19 +66,26 @@
     <div class="form-sheet">
       <h2>ADD ITEM</h2>
 
+      <!-- Category row: dropdown + manage button -->
       <div class="form-row">
-        <label>Category</label>
-        <select id="fieldCategory">
-          <option value="">-- select --</option>
-          <option>Meat</option>
-          <option>Seafood</option>
-          <option>Vegetables</option>
-          <option>Fruits</option>
-          <option>Dairy</option>
-          <option>Bread</option>
-          <option>Leftovers</option>
-          <option>Other</option>
-        </select>
+        <label>
+          Category
+          <button class="cat-manage-btn" onclick="openCatManager()" title="Manage categories">&#9998;</button>
+        </label>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+          <select id="fieldCategory" onchange="handleCatChange(this)">
+            <!-- populated by JS -->
+          </select>
+          <!-- Inline add-new row (hidden until "+ Add new..." is chosen) -->
+          <div id="catAddRow" style="display:none;display:flex;gap:6px;align-items:center;">
+            <input type="text" id="newCatInput" placeholder="New category name"
+                   style="flex:1;padding:8px 10px;border:none;border-radius:8px;background:#deeeff;font-size:13px;outline:none;">
+            <button onclick="confirmAddCat()"
+                    style="padding:8px 12px;border:none;border-radius:8px;background:#e87030;color:white;font-size:16px;font-weight:bold;cursor:pointer;">&#10003;</button>
+            <button onclick="cancelAddCat()"
+                    style="padding:8px 12px;border:none;border-radius:8px;background:#ccc;color:#333;font-size:16px;cursor:pointer;">&#10007;</button>
+          </div>
+        </div>
       </div>
 
       <div class="form-row">
@@ -103,15 +110,140 @@
     </div>
   </div>
 
+  <!-- Manage Categories overlay -->
+  <div class="form-overlay" id="catManagerOverlay" onclick="handleCatManagerClick(event)">
+    <div class="form-sheet">
+      <h2>MANAGE CATEGORIES</h2>
+      <ul id="catList" style="list-style:none;padding:0;margin:0;"></ul>
+      <div style="margin-top:20px;text-align:center;">
+        <button class="btn-save" onclick="closeCatManager()">DONE</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast">Item saved!</div>
 
+  <style>
+    .cat-manage-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 14px; color: #2020c8; margin-left: 6px;
+      padding: 2px 4px; vertical-align: middle;
+    }
+    .cat-manage-btn:hover { color: #e87030; }
+    .cat-list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 8px; border-bottom: 1px solid #eee;
+      font-family: 'Press Start 2P', cursive; font-size: 8px; color: #333;
+    }
+    .cat-list-item:last-child { border-bottom: none; }
+    .cat-del-btn {
+      background: #e84040; color: white; border: none;
+      border-radius: 6px; padding: 5px 9px; font-size: 12px;
+      cursor: pointer; font-weight: bold; flex-shrink: 0;
+    }
+    .cat-del-btn:hover { background: #c02020; }
+  </style>
+
   <script>
-    const STORAGE_KEY = 'freezer_items';
+    const STORAGE_KEY     = 'freezer_items';
+    const CAT_KEY         = 'freezer_categories';
+    const DEFAULT_CATS    = ['Bread','Dairy','Fruits','Leftovers','Meat','Other','Seafood','Vegetables'];
     let sortField = null;
     let sortAsc   = true;
 
-    /* ── Data helpers ── */
+    /* ── Category helpers ── */
+    function loadCategories() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(CAT_KEY));
+        return (stored && stored.length) ? stored : [...DEFAULT_CATS];
+      } catch { return [...DEFAULT_CATS]; }
+    }
+    function saveCategories(cats) {
+      localStorage.setItem(CAT_KEY, JSON.stringify(cats));
+    }
+
+    function populateCategorySelect(selectedVal) {
+      const sel = document.getElementById('fieldCategory');
+      const cats = loadCategories();
+      sel.innerHTML =
+        '<option value="">-- select --</option>' +
+        cats.map(c => `<option value="${esc(c)}"${c === selectedVal ? ' selected' : ''}>${esc(c)}</option>`).join('') +
+        '<option value="__add_new__">&#10010; Add new category...</option>';
+      if (selectedVal) sel.value = selectedVal;
+    }
+
+    /* ── Handle dropdown change ── */
+    function handleCatChange(sel) {
+      if (sel.value === '__add_new__') {
+        sel.value = '';
+        const row = document.getElementById('catAddRow');
+        row.style.display = 'flex';
+        document.getElementById('newCatInput').focus();
+      }
+    }
+
+    function confirmAddCat() {
+      const input = document.getElementById('newCatInput');
+      const name  = input.value.trim();
+      if (!name) { input.focus(); return; }
+
+      const cats = loadCategories();
+      if (cats.some(c => c.toLowerCase() === name.toLowerCase())) {
+        alert('Category already exists!'); return;
+      }
+      cats.push(name);
+      cats.sort((a,b) => a.localeCompare(b));
+      saveCategories(cats);
+      populateCategorySelect(name);
+      document.getElementById('fieldCategory').value = name;
+      document.getElementById('catAddRow').style.display = 'none';
+      input.value = '';
+    }
+
+    function cancelAddCat() {
+      document.getElementById('catAddRow').style.display = 'none';
+      document.getElementById('newCatInput').value = '';
+      document.getElementById('fieldCategory').value = '';
+    }
+
+    /* ── Manage categories overlay ── */
+    function openCatManager() {
+      renderCatList();
+      document.getElementById('catManagerOverlay').classList.add('active');
+    }
+    function closeCatManager() {
+      document.getElementById('catManagerOverlay').classList.remove('active');
+      populateCategorySelect();   // refresh dropdown after edits
+    }
+    function handleCatManagerClick(e) {
+      if (e.target === document.getElementById('catManagerOverlay')) closeCatManager();
+    }
+
+    function renderCatList() {
+      const cats = loadCategories();
+      const ul   = document.getElementById('catList');
+      if (!cats.length) {
+        ul.innerHTML = '<li class="cat-list-item" style="justify-content:center;color:#bbb;">No categories yet</li>';
+        return;
+      }
+      ul.innerHTML = cats.map((c, i) => `
+        <li class="cat-list-item">
+          <span>${esc(c)}</span>
+          <button class="cat-del-btn" onclick="deleteCategory(${i})">&#10007;</button>
+        </li>`).join('');
+    }
+
+    function deleteCategory(index) {
+      const cats = loadCategories();
+      const name = cats[index];
+      if (!confirm('Delete category "' + name + '"?')) return;
+      cats.splice(index, 1);
+      saveCategories(cats);
+      renderCatList();
+    }
+
+    /* ── Item data helpers ── */
     function loadItems() {
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
       catch { return []; }
@@ -165,13 +297,13 @@
       renderTable();
     }
 
-    /* ── Form open / close ── */
+    /* ── Add-Item form open / close ── */
     function openForm() {
-      document.getElementById('fieldDate').value =
-        new Date().toISOString().split('T')[0];
-      document.getElementById('fieldCategory').value = '';
-      document.getElementById('fieldItem').value    = '';
-      document.getElementById('fieldNote').value    = '';
+      document.getElementById('fieldDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('fieldItem').value  = '';
+      document.getElementById('fieldNote').value  = '';
+      document.getElementById('catAddRow').style.display = 'none';
+      populateCategorySelect();
       document.getElementById('formOverlay').classList.add('active');
     }
     function closeForm() {
@@ -204,7 +336,7 @@
     function showToast() {
       const t = document.getElementById('toast');
       t.classList.remove('show');
-      void t.offsetWidth;          // force reflow
+      void t.offsetWidth;
       t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2200);
     }
