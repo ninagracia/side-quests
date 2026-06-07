@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Freezer Inventory</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Ground -->
+  <div class="ground"></div>
+
+  <!-- Cloud -->
+  <div class="cloud-wrap" style="top:8%;right:10%;">
+    <div class="cloud-body" style="width:60px;height:22px;">
+      <div class="cloud-puff" style="width:30px;height:30px;top:-15px;left:7px;"></div>
+      <div class="cloud-puff" style="width:22px;height:22px;top:-10px;left:30px;"></div>
+    </div>
+  </div>
+
+  <!-- Pipe left -->
+  <div class="pipe-wrap" style="left:10px;">
+    <div class="pipe-head" style="width:48px;height:14px;"></div>
+    <div class="pipe-body" style="width:36px;height:75px;margin-left:6px;"></div>
+  </div>
+
+  <!-- Pipe right -->
+  <div class="pipe-wrap" style="right:0;">
+    <div class="pipe-head" style="width:62px;height:14px;"></div>
+    <div class="pipe-body" style="width:50px;height:128px;margin-left:6px;"></div>
+  </div>
+
+  <!-- Question block -->
+  <div class="qblock" style="bottom:200px;left:100px;">?</div>
+
+  <!-- Main content -->
+  <div class="content">
+    <a href="index.html" class="back-btn">&#8592; BACK</a>
+    <div class="page-title">FREEZER INVENTORY</div>
+
+    <table class="inventory-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable('category')">
+            CATEGORY <span id="arrow-category">&#8597;</span>
+          </th>
+          <th onclick="sortTable('date')">
+            DATE <span id="arrow-date">&#8597;</span>
+          </th>
+          <th onclick="sortTable('item')">
+            ITEM <span id="arrow-item">&#8597;</span>
+          </th>
+          <th>NOTES</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Floating Add (+) Button -->
+  <div class="fab" onclick="openForm()">+</div>
+
+  <!-- Add Item — bottom sheet -->
+  <div class="form-overlay" id="formOverlay" onclick="handleOverlayClick(event)">
+    <div class="form-sheet">
+      <h2>ADD ITEM</h2>
+
+      <div class="form-row">
+        <label>Category</label>
+        <select id="fieldCategory">
+          <option value="">-- select --</option>
+          <option>Meat</option>
+          <option>Seafood</option>
+          <option>Vegetables</option>
+          <option>Fruits</option>
+          <option>Dairy</option>
+          <option>Bread</option>
+          <option>Leftovers</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label>Date</label>
+        <input type="date" id="fieldDate">
+      </div>
+
+      <div class="form-row">
+        <label>Item</label>
+        <input type="text" id="fieldItem" placeholder="e.g. Chicken breast">
+      </div>
+
+      <div class="form-row">
+        <label>Note</label>
+        <textarea id="fieldNote" placeholder="e.g. 2 packs, expires soon..."></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="closeForm()">cancel</button>
+        <button class="btn-save"   onclick="saveItem()">save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">Item saved!</div>
+
+  <script>
+    const STORAGE_KEY = 'freezer_items';
+    let sortField = null;
+    let sortAsc   = true;
+
+    /* ── Data helpers ── */
+    function loadItems() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+      catch { return []; }
+    }
+    function saveItems(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    /* ── Escape HTML ── */
+    function esc(s) {
+      return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    /* ── Render table ── */
+    function renderTable() {
+      const items = loadItems();
+      const tbody = document.getElementById('tableBody');
+
+      if (!items.length) {
+        tbody.innerHTML =
+          '<tr class="empty-msg"><td colspan="4">No items yet — tap + to add!</td></tr>';
+        return;
+      }
+
+      let sorted = [...items];
+      if (sortField) {
+        sorted.sort((a, b) => {
+          const va = (a[sortField] || '').toLowerCase();
+          const vb = (b[sortField] || '').toLowerCase();
+          return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        });
+      }
+
+      tbody.innerHTML = sorted.map(r => `
+        <tr>
+          <td>${esc(r.category)}</td>
+          <td>${esc(r.date)}</td>
+          <td>${esc(r.item)}</td>
+          <td>${esc(r.note)}</td>
+        </tr>`).join('');
+    }
+
+    /* ── Sort ── */
+    function sortTable(field) {
+      sortAsc = sortField === field ? !sortAsc : true;
+      sortField = field;
+      ['category','date','item'].forEach(f => {
+        const el = document.getElementById('arrow-' + f);
+        if (el) el.innerHTML = f === field ? (sortAsc ? '&#8593;' : '&#8595;') : '&#8597;';
+      });
+      renderTable();
+    }
+
+    /* ── Form open / close ── */
+    function openForm() {
+      document.getElementById('fieldDate').value =
+        new Date().toISOString().split('T')[0];
+      document.getElementById('fieldCategory').value = '';
+      document.getElementById('fieldItem').value    = '';
+      document.getElementById('fieldNote').value    = '';
+      document.getElementById('formOverlay').classList.add('active');
+    }
+    function closeForm() {
+      document.getElementById('formOverlay').classList.remove('active');
+    }
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('formOverlay')) closeForm();
+    }
+
+    /* ── Save item ── */
+    function saveItem() {
+      const item = document.getElementById('fieldItem').value.trim();
+      if (!item) { alert('Item name is required!'); return; }
+
+      const items = loadItems();
+      items.push({
+        id:       Date.now(),
+        category: document.getElementById('fieldCategory').value,
+        date:     document.getElementById('fieldDate').value,
+        item:     item,
+        note:     document.getElementById('fieldNote').value.trim()
+      });
+      saveItems(items);
+      closeForm();
+      renderTable();
+      showToast();
+    }
+
+    /* ── Toast ── */
+    function showToast() {
+      const t = document.getElementById('toast');
+      t.classList.remove('show');
+      void t.offsetWidth;          // force reflow
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    /* ── Init ── */
+    renderTable();
+  </script>
+
+</body>
+</html>

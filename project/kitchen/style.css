@@ -1,0 +1,211 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Press Start 2P', cursive;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #d0eaf8 0%, #c0e4f5 70%);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Ground strip */
+.ground {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 110px;
+  background: #7ec850;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0,0,0,0.06) 19px, rgba(0,0,0,0.06) 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0,0,0,0.06) 19px, rgba(0,0,0,0.06) 20px);
+  z-index: 1;
+}
+
+/* Content area above ground */
+.content {
+  position: relative;
+  z-index: 10;
+  padding: 16px 16px 160px;
+}
+
+/* ── Decorative: Clouds ── */
+.cloud-wrap {
+  position: fixed;
+  z-index: 2;
+  pointer-events: none;
+}
+.cloud-body {
+  background: white;
+  border-radius: 40px;
+  position: relative;
+  opacity: 0.88;
+}
+.cloud-puff {
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+}
+
+/* ── Decorative: Pipes ── */
+.pipe-wrap {
+  position: fixed;
+  bottom: 100px;
+  z-index: 3;
+  pointer-events: none;
+}
+.pipe-body {
+  background: #78b858;
+  border: 3px solid #4e8e34;
+  border-radius: 4px 4px 0 0;
+}
+.pipe-head {
+  background: #78b858;
+  border: 3px solid #4e8e34;
+  border-radius: 5px 5px 0 0;
+  margin-left: -6px;
+}
+
+/* ── Decorative: Question block ── */
+.qblock {
+  position: fixed;
+  width: 44px; height: 44px;
+  background: #e8a840;
+  border: 3px solid #c07820;
+  border-radius: 5px;
+  box-shadow: inset -3px -3px 0 #c07820;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: white;
+  font-family: 'Press Start 2P', cursive;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ── Mario-style golden buttons ── */
+.mario-btn {
+  display: block;
+  background: linear-gradient(to bottom, #f5c842, #e09820);
+  border: 4px solid #b87018;
+  border-radius: 14px;
+  padding: 22px 36px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 20px;
+  color: #2020c8;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 7px 0 #886010, 0 9px 4px rgba(0,0,0,0.25);
+  transition: transform 0.1s, box-shadow 0.1s;
+  -webkit-text-stroke: 1px #1010a0;
+  letter-spacing: 1px;
+  width: 100%;
+}
+.mario-btn:active { transform: translateY(5px); box-shadow: 0 2px 0 #886010; }
+.mario-btn.disabled {
+  background: linear-gradient(to bottom, #ccc, #aaa);
+  color: #666; box-shadow: 0 7px 0 #888, 0 9px 4px rgba(0,0,0,0.2);
+  cursor: not-allowed; -webkit-text-stroke: none; pointer-events: none;
+}
+
+/* ── Inventory Table ── */
+.inventory-table { width: 100%; border-collapse: collapse; background: white; }
+.inventory-table th {
+  background: #dceeff;
+  border: 1.5px solid #2020c8;
+  padding: 10px 5px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 7px;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+}
+.inventory-table th:hover { background: #c4deff; }
+.inventory-table td {
+  border: 1.5px solid #2020c8;
+  padding: 9px 5px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 7px;
+  word-break: break-word;
+  vertical-align: top;
+}
+.inventory-table tr:nth-child(even) td { background: #f0f8ff; }
+.empty-msg td {
+  text-align: center; color: #bbb;
+  padding: 20px; font-size: 7px;
+}
+
+/* ── Floating Add Button ── */
+.fab {
+  position: fixed; bottom: 130px; right: 20px;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: #e87030; border: 3px solid #c05010;
+  color: white; font-size: 30px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 5px 0 #a03010, 0 7px 4px rgba(0,0,0,0.25);
+  z-index: 20; transition: transform 0.1s, box-shadow 0.1s; line-height: 1;
+}
+.fab:active { transform: translateY(4px); box-shadow: 0 1px 0 #a03010; }
+
+/* ── Add Item Form (bottom sheet) ── */
+.form-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end;
+}
+.form-overlay.active { display: flex; }
+.form-sheet {
+  background: white; border-radius: 20px 20px 0 0;
+  padding: 24px 20px 30px; width: 100%;
+  max-height: 85vh; overflow-y: auto;
+}
+.form-sheet h2 {
+  font-family: 'Press Start 2P', cursive; font-size: 10px;
+  color: #2020c8; text-align: center; margin-bottom: 20px;
+}
+.form-row {
+  display: flex; align-items: flex-start;
+  padding: 12px 0; border-bottom: 1px solid #eee; gap: 12px;
+}
+.form-row label {
+  font-family: 'Press Start 2P', cursive; font-size: 8px;
+  color: #333; min-width: 75px; padding-top: 10px;
+}
+.form-row input, .form-row select, .form-row textarea {
+  flex: 1; padding: 10px 12px; border: none;
+  border-radius: 8px; background: #e4e4e4;
+  font-size: 13px; color: #333; outline: none;
+}
+.form-row textarea { min-height: 80px; resize: vertical; }
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus { background: #deeeff; }
+.form-actions { display: flex; gap: 20px; justify-content: center; margin-top: 24px; }
+.btn-cancel, .btn-save {
+  padding: 13px 28px; border-radius: 30px; border: none;
+  background: #e87030; color: #1a4010;
+  cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+  font-family: 'Press Start 2P', cursive; font-size: 9px; font-weight: bold;
+}
+.btn-cancel:active, .btn-save:active { transform: translateY(2px); box-shadow: none; }
+
+/* ── Page title & nav ── */
+.page-title {
+  font-family: 'Press Start 2P', cursive; font-size: 11px;
+  color: #2020c8; text-align: center; padding: 14px 0 12px;
+}
+.back-btn {
+  font-family: 'Press Start 2P', cursive; font-size: 9px;
+  color: #2020c8; text-decoration: none;
+  display: inline-block; padding: 8px 4px 12px;
+}
+
+/* ── Toast notification ── */
+.toast {
+  position: fixed; bottom: 210px; left: 50%;
+  transform: translateX(-50%);
+  background: #2020c8; color: white;
+  font-family: 'Press Start 2P', cursive; font-size: 8px;
+  padding: 10px 20px; border-radius: 20px; z-index: 200;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s; white-space: nowrap;
+}
+.toast.show { opacity: 1; }
