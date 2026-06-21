@@ -37,4 +37,4 @@ Every great adventure has side quests — the detours that teach you something u
 
 ---
 
-*Started in 2026 — because it's never too late to begin a new quest.*
+*Started in 2026 because it's never too late to begin a new quest*
