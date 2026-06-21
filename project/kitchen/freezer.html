@@ -42,6 +42,7 @@
     <table class="inventory-table">
       <thead>
         <tr>
+          <th style="width:28px;"></th>
           <th onclick="sortTable('category')">
             CATEGORY <span id="arrow-category">&#8597;</span>
           </th>
@@ -52,6 +53,7 @@
             ITEM <span id="arrow-item">&#8597;</span>
           </th>
           <th>NOTES</th>
+          <th style="width:28px;"></th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -125,6 +127,39 @@
   <div class="toast" id="toast">Item saved!</div>
 
   <style>
+    /* ── Completed row ── */
+    .row-done td {
+      color: #aaa !important;
+      text-decoration: line-through;
+      background: #f2f2f2 !important;
+    }
+
+    /* ── Checkbox cell ── */
+    .cb-cell {
+      text-align: center;
+      vertical-align: middle;
+      padding: 6px 4px;
+    }
+    .cb-cell input[type="checkbox"] {
+      width: 16px; height: 16px;
+      cursor: pointer;
+      accent-color: #e87030;
+    }
+
+    /* ── Delete cell & button ── */
+    .del-cell {
+      text-align: center;
+      vertical-align: middle;
+      padding: 6px 4px;
+    }
+    .del-btn {
+      background: none; border: none;
+      cursor: pointer; font-size: 15px;
+      color: #e84040; padding: 2px 4px;
+      line-height: 1;
+    }
+    .del-btn:hover { color: #b00000; }
+
     .cat-manage-btn {
       background: none; border: none; cursor: pointer;
       font-size: 14px; color: #2020c8; margin-left: 6px;
@@ -264,26 +299,56 @@
 
       if (!items.length) {
         tbody.innerHTML =
-          '<tr class="empty-msg"><td colspan="4">No items yet — tap + to add!</td></tr>';
+          '<tr class="empty-msg"><td colspan="6">No items yet — tap + to add!</td></tr>';
         return;
       }
 
-      let sorted = [...items];
+      let active = items.filter(r => !r.completed);
+      let done   = items.filter(r =>  r.completed);
+
       if (sortField) {
-        sorted.sort((a, b) => {
+        active.sort((a, b) => {
           const va = (a[sortField] || '').toLowerCase();
           const vb = (b[sortField] || '').toLowerCase();
           return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
         });
       }
 
-      tbody.innerHTML = sorted.map(r => `
-        <tr>
+      const renderRow = r => `
+        <tr class="${r.completed ? 'row-done' : ''}">
+          <td class="cb-cell">
+            <input type="checkbox" ${r.completed ? 'checked' : ''}
+                   onchange="toggleComplete(${r.id})">
+          </td>
           <td>${esc(r.category)}</td>
           <td>${esc(r.date)}</td>
           <td>${esc(r.item)}</td>
           <td>${esc(r.note)}</td>
-        </tr>`).join('');
+          <td class="del-cell">
+            ${r.completed
+              ? `<button class="del-btn" onclick="deleteItem(${r.id})" title="Delete">&#128465;</button>`
+              : ''}
+          </td>
+        </tr>`;
+
+      tbody.innerHTML = [...active, ...done].map(renderRow).join('');
+    }
+
+    /* ── Toggle completed state ── */
+    function toggleComplete(id) {
+      const items = loadItems();
+      const idx = items.findIndex(i => i.id === id);
+      if (idx === -1) return;
+      items[idx].completed = !items[idx].completed;
+      saveItems(items);
+      renderTable();
+    }
+
+    /* ── Delete item ── */
+    function deleteItem(id) {
+      const items = loadItems();
+      saveItems(items.filter(i => i.id !== id));
+      renderTable();
     }
 
     /* ── Sort ── */
@@ -320,11 +385,12 @@
 
       const items = loadItems();
       items.push({
-        id:       Date.now(),
-        category: document.getElementById('fieldCategory').value,
-        date:     document.getElementById('fieldDate').value,
-        item:     item,
-        note:     document.getElementById('fieldNote').value.trim()
+        id:        Date.now(),
+        category:  document.getElementById('fieldCategory').value,
+        date:      document.getElementById('fieldDate').value,
+        item:      item,
+        note:      document.getElementById('fieldNote').value.trim(),
+        completed: false
       });
       saveItems(items);
       closeForm();
